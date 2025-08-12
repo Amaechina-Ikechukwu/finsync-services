@@ -8,6 +8,10 @@ from firebase_functions import db_fn
 from firebase_functions.https_fn import on_request, Request
 import resend_service  # Import from the local resend_service.py file
 
+# Default base URL for production — set to the direct Cloud Run URL of the function
+# Example provided: https://handle-verification-click-5czh4imcxq-uc.a.run.app
+DEFAULT_FUNCTION_BASE_URL = "https://handle-verification-click-5czh4imcxq-uc.a.run.app"
+
 @db_fn.on_value_created(
     reference="/users/{userId}",
     secrets=[resend_service.RESEND_API_KEY]
@@ -34,14 +38,15 @@ def send_verification_email(event: db_fn.Event[dict]) -> None:
         "expires": expires.isoformat(),
     })
 
-    # Build verification URL using a simple, configurable base (no GCP checks)
-    base_url = os.getenv("FUNCTION_BASE_URL") or os.getenv("VERIFICATION_BASE_URL")
+    # Build verification URL using a simple, configurable base with a safe default
+    base_url = os.getenv("FUNCTION_BASE_URL") or os.getenv("VERIFICATION_BASE_URL") or DEFAULT_FUNCTION_BASE_URL
     function_path = "handle_verification_click"
-    if base_url:
-        verification_url = f"{base_url.rstrip('/')}/{function_path}?token={token}"
+    base_clean = base_url.rstrip("/")
+    # If base already points directly to the function (e.g., run.app) or ends with the function name, don't append it again
+    if base_clean.lower().endswith(f"/{function_path}") or ("run.app" in base_clean.lower()):
+        verification_url = f"{base_clean}?token={token}"
     else:
-        # Fallback to relative path so emails can be adjusted by the environment
-        verification_url = f"/{function_path}?token={token}"
+        verification_url = f"{base_clean}/{function_path}?token={token}"
     # Try common locations for email (flat or nested under profile)
     email = user_data.get("email") or user_data.get("profile", {}).get("email")
     if not email:
