@@ -1,2 +1,4 @@
 firebase_functions~=0.1.0
+firebase-admin>=6,<7
+functions-framework>=3.5,<4
 resend

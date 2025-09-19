@@ -1,7 +1,7 @@
 import os
 import secrets
 from datetime import datetime, timedelta, timezone
-from flask import redirect
+from flask import redirect, Response
 import firebase_admin
 from firebase_admin import db
 from firebase_functions import db_fn
@@ -76,7 +76,7 @@ def send_verification_email(event: db_fn.Event[dict]) -> None:
     print(f"Verification email sent to {email}")
 
 @on_request()
-def handle_verification_click(req: Request) -> redirect:
+def handle_verification_click(req: Request) -> Response:
     """Handles the verification link clicked by the user."""
     
     token = req.args.get("token")
@@ -115,5 +115,44 @@ def handle_verification_click(req: Request) -> redirect:
     })
 
     print(f"User {user_id} successfully verified.")
-    # Redirect to your website's success page
-    return redirect("https://your-website.com/verification-success", code=302)
+
+    # Return a simple HTML success page
+    success_html = (
+        "<!doctype html>\n"
+        "<html lang=\"en\">\n"
+        "<head>\n"
+        "  <meta charset=\"utf-8\">\n"
+        "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+        "  <title>Email Verified</title>\n"
+        "  <style>\n"
+        "    :root{color-scheme: light dark;}\n"
+        "    body{font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;\n"
+        "         margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;\n"
+        "         background: radial-gradient(1200px circle at 10% 10%, #f0f7ff, transparent),\n"
+        "                     radial-gradient(1200px circle at 90% 90%, #f6fff0, transparent);}\n"
+        "    .card{max-width:560px;background:rgba(255,255,255,0.9);backdrop-filter: blur(6px);\n"
+        "          border:1px solid rgba(0,0,0,0.06);border-radius:16px;padding:32px;\n"
+        "          box-shadow: 0 10px 30px rgba(0,0,0,0.08);}\n"
+        "    h1{font-size:1.75rem;margin:0 0 8px;}\n"
+        "    p{margin:8px 0 0;line-height:1.55;}\n"
+        "    .ok{display:inline-flex;align-items:center;justify-content:center;\n"
+        "        width:44px;height:44px;border-radius:999px;background:#22c55e;color:#fff;\n"
+        "        box-shadow: 0 6px 16px rgba(34,197,94,0.35);margin-bottom:12px;}\n"
+        "    .muted{color:#666}\n"
+        "    a.btn{display:inline-block;margin-top:16px;padding:10px 14px;border-radius:10px;\n"
+        "          text-decoration:none;background:#2563eb;color:#fff;}\n"
+        "    a.btn:hover{background:#1d4ed8}\n"
+        "  </style>\n"
+        "</head>\n"
+        "<body>\n"
+        "  <main class=\"card\">\n"
+        "    <div class=\"ok\">✔</div>\n"
+        "    <h1>Your email is verified</h1>\n"
+        "    <p>Thanks for confirming your email. Your account is now fully activated.</p>\n"
+        "    <p class=\"muted\">You can safely close this tab or return to the app.</p>\n"
+        "  </main>\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
+    return success_html, 200, {"Content-Type": "text/html; charset=utf-8"}
